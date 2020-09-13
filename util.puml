@@ -1,0 +1,93 @@
+@startuml
+'############################
+' Compensate for stdlib inconsistencies
+'############################
+
+'!assert %version() >= "1.2021.02" : "Please update your PlantUML version"
+
+!function $replace($str, $search, $replace)
+    !$ret = ""
+    !while %strlen($str) > 0
+        !if (%strpos($str, $search) == 0)
+            !$ret = $ret + $replace
+            !$str = %substr($str, %strlen($search))
+        !else
+            !$ret = $ret + %substr($str, 0, 1)
+            !$str = %substr($str, 1)
+        !endif
+    !endwhile
+    !return $ret
+!endfunction
+
+!function $wrap($str, $wrapcol)
+    '
+    ' Returns the $str wrapped at first space after $wrapcol characters.
+    '
+    !$ret = ""
+    !$col = 0
+    !while %strlen($str) > 0
+        !if (%strlen($str)>=2) && (%substr($str, 0, 2) == "\n")
+            !$ret = $ret + "\n"
+            !$col = 0
+            !$str = %substr($str, 2)
+        !elseif ($col >= $wrapcol) && (%substr($str, 0, 1) == " ")
+            !$ret = $ret + "\n"
+            !$str = %substr($str, 1)
+            !$col = 1
+        !else
+            !$ret = $ret + %substr($str, 0, 1)
+            !$str = %substr($str, 1)
+            !$col = $col + 1
+        !endif
+    !endwhile
+    !return $ret
+!endfunction
+
+!function $strpos_n($str, $substr, $n)
+    '
+    ' Returns the nth position of $substr in $str. -1 if not found.
+    '
+    !$total = %intval("-1")
+    !while $n > 0
+        !$n = $n - 1
+        !$pos = %strpos($str, $substr)
+        !if ($pos < 0)
+            !return $pos
+        !endif
+        !$str = %substr($str, $pos + 1)
+        !$total = $total + $pos + 1
+    !endwhile
+    !return $total
+!endfunction
+
+!function $strpos_last($str, $substr)
+    '
+    ' Returns the position of the last $substr in $str. -1 if not found.
+    '
+    !$last = %intval("-1")
+    !$pos = 0
+    !while %strlen($str) > 0
+        !$pos = %strpos($str, $substr)
+        !if ($pos < 0)
+            !return $last
+        !endif
+        !$str = %substr($str, $pos + 1)
+        !$last = $last + $pos + 1
+    !endwhile
+    !return $total
+!endfunction
+
+!function $lorem($words)
+    '
+    ' Returns the $words first words of a lorem ipsum paragraph.
+    '
+    !$text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    !$pos = $strpos_n($text, " ", $words)
+    !if ($pos >= 0)
+        !return %substr($text, 0, $pos)
+    !else
+        !return $text
+    !endif
+!endfunction
+
+@enduml
