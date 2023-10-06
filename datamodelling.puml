@@ -38,7 +38,7 @@ hide empty member
 !function $getRelationText($description, $params)
     !$ret = "**"+$description+"**"
     !if ($params != "")
-        !$ret = $ret + "\n" + $params
+        !$ret = $ret + "\n" + $replace($params, "|", "\n")
     !endif
     !return $ret
 !endfunction
