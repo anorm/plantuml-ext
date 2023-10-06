@@ -52,7 +52,7 @@ $from $arrow $to: $getRelationText($description, $params)
 !endprocedure
 
 !unquoted procedure Rel($from, $description, $to, $params="")
-Rel_($from, $description, $to, "", "-->")
+Rel_($from, $description, $to, $params, "-->")
 !endprocedure
 
 !unquoted procedure Rel_U($from, $description, $to, $params="")
