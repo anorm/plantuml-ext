@@ -12,6 +12,12 @@ skinparam class<<Entity>> {
     HeaderBackgroundColor AntiqueWhite
 }
 hide <<Entity>> stereotype
+skinparam class<<Entity_Ext>> {
+    BackgroundColor white
+    HeaderBackgroundColor #eee
+    FontColor #666
+}
+hide <<Entity_Ext>> stereotype
 
 !function $getLink($link)
   !if ($link!="")
@@ -51,6 +57,10 @@ hide <<Entity>> stereotype
 
 !unquoted procedure Entity($id, $name, $description="", $example="")
 class "$getName($name, $description, $example)" as $id <<Entity>>
+!endprocedure
+
+!unquoted procedure Entity_Ext($id, $name, $description="", $example="")
+class "$getName($name, $description, $example)" as $id <<Entity_Ext>>
 !endprocedure
 
 !unquoted procedure Property($name, $description="", $example="")
