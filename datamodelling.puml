@@ -7,6 +7,12 @@ hide empty member
 !$WRAPCOL_DESC=30
 !$WRAPCOL_EXAMPLE=30
 
+skinparam class<<Entity>> {
+    BackgroundColor white
+    HeaderBackgroundColor AntiqueWhite
+}
+hide <<Entity>> stereotype
+
 !function $getLink($link)
   !if ($link!="")
     !return "[[" + $link + "]]"
@@ -44,7 +50,11 @@ hide empty member
 !endfunction
 
 !unquoted procedure Entity($id, $name, $description="", $example="")
-class "$getName($name, $description, $example)" as $id
+class "$getName($name, $description, $example)" as $id <<Entity>>
+!endprocedure
+
+!unquoted procedure Property($name, $description="", $example="")
+<#transparent,#transparent>|= $name | $wrap($description, $WRAPCOL_DESC) | $wrap($example, $WRAPCOL_EXAMPLE) |
 !endprocedure
 
 !unquoted procedure Rel_($from, $description, $to, $params="", $arrow="-->")
