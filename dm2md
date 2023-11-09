@@ -1,0 +1,136 @@
+#!env/bin/python
+import argparse
+import io
+import yaml
+
+
+def load_model(filename: str):
+    with open(filename) as f:
+        return yaml.safe_load(f)
+
+
+def writeline(stream, str=""):
+    stream.write(str)
+    stream.write("\n")
+
+
+def reverse_direction(dir):
+    if dir == "L":
+        return "R"
+    if dir == "R":
+        return "L"
+    if dir == "U":
+        return "D"
+    if dir == "D":
+        return "U"
+    return dir
+
+
+def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=None, external=None):
+    ret = io.StringIO()
+    writeline(ret, "@startuml")
+    writeline(ret, "!include https://raw.githubusercontent.com/anorm/plantuml-ext/main/datamodelling.puml")
+    #writeline(ret, "title Data model overview")
+    
+    overrides = datamodel.get("datamodel", {}).get("diagramOverrides", {}).get(id, {})
+    
+    # Output all entities
+    visibleEntities = []
+    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+        if whitelist and not id in whitelist:
+            continue
+        if blacklist and id in blacklist:
+            continue
+        isInternal = True
+        if internal and not id in internal:
+            isInternal = False
+        if external and id in external:
+            isInternal = False
+        visibleEntities.append(id)
+        prefix = "Entity" if isInternal else "Entity_Ext"
+        name = entity.get("name", id)
+        shortDescription = entity.get("shortDescription", "")
+        examples = ", ".join([f"'{e}'" for e in entity.get("examples", [])])
+        properties = entity.get("properties", {})
+        ret.write(f'{prefix}({id}, "{name}", "{shortDescription}", $example="{examples}") {{\n')
+        for property,propertyAttr in properties.items():
+            writeline(ret, f'  Property("{property}")')
+        writeline(ret, "}")
+        writeline(ret)
+
+    # Output all relations
+    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+        relations = entity.get("relations", [])
+        for relation in relations:
+            description = relation.get("description", "?")
+            to = relation["to"]
+            if not id in visibleEntities or not to in visibleEntities:
+                continue
+            direction = ""
+            if f"{to}-{id}" in overrides:
+                direction = "_"+reverse_direction(overrides[f"{to}-{id}"])
+            if f"{id}-{to}" in overrides:
+                direction = "_"+overrides[f"{id}-{to}"]
+
+            writeline(ret, f'Rel{direction}({id}, "{description}", {to})')
+
+    writeline(ret, "@enduml")
+    return ret.getvalue()
+
+
+def find_related_entities(datamodel, target):
+    ret = set()
+    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+        relations = entity.get("relations", [])
+        for relation in relations:
+            to = relation["to"]
+            if target == id:
+                ret.add(to)
+            if target == to:
+                ret.add(id)
+    return list(ret)
+
+def generate_markdown(datamodel) -> str:
+    ret = io.StringIO()
+    writeline(ret, "# Data model")
+    writeline(ret)
+    writeline(ret, "## Overview")
+    writeline(ret)
+    writeline(ret, "```plantuml")
+    writeline(ret, generate_diagram("overview", datamodel))
+    writeline(ret, "```")
+    writeline(ret)
+
+    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+        name = entity.get("name", id)
+        shortDescription = entity.get("shortDescription", "")
+        description = entity.get("description", "")
+        examples = ", ".join([f"'{e}'" for e in entity.get("examples", [])])
+        properties = entity.get("properties", {})
+        writeline(ret, f"## {name}")
+        writeline(ret)
+        writeline(ret, "```plantuml")
+        whitelist = [id]
+        whitelist.extend(find_related_entities(datamodel, id))
+        writeline(ret, generate_diagram(id, datamodel, internal=[id], whitelist=whitelist))
+        writeline(ret, "```")
+        writeline(ret)
+        if description:
+            writeline(ret, description)
+    
+    return ret.getvalue()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("datamodel")
+    args = parser.parse_args()
+
+    datamodel = load_model(args.datamodel)
+
+    markdown = generate_markdown(datamodel)
+    print(markdown)
+
+
+if __name__ == "__main__":
+    main()
