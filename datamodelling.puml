@@ -10,12 +10,16 @@ hide empty member
 skinparam class<<Entity>> {
     BackgroundColor white
     HeaderBackgroundColor AntiqueWhite
+    AttributeFontSize 12
+    FontSize 14
 }
 hide <<Entity>> stereotype
 skinparam class<<Entity_Ext>> {
     BackgroundColor white
     HeaderBackgroundColor #eee
     AttributeFontColor #777
+    AttributeFontSize 12
+    FontSize 14
 }
 hide <<Entity_Ext>> stereotype
 
