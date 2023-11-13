@@ -5,7 +5,7 @@ import yaml
 import schema
 
 
-datamodel_schema = schema.Schema({
+workspace_schema = schema.Schema({
     "datamodel": {
         "entities": {
             str: {
@@ -30,18 +30,24 @@ datamodel_schema = schema.Schema({
                     }
                 }]
             }
-        },
-        "diagramOverrides": object
+        }
+    },
+    "diagrams": {
+        str: {
+            "layout": {
+                str: schema.Or("L", "R", "U", "D")
+            }
+        }
     }
 })
 
 
-def load_model(filename: str):
+def load_workspace(filename: str):
     with open(filename) as f:
-        datamodel = yaml.safe_load(f)
+        workspace = yaml.safe_load(f)
     try:
-        datamodel_schema.validate(datamodel)
-        return datamodel
+        workspace_schema.validate(workspace)
+        return workspace
     except schema.SchemaError as e:
         raise e
 
@@ -63,17 +69,17 @@ def reverse_direction(dir):
     return dir
 
 
-def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=None, external=None):
+def generate_diagram(id, workspace, whitelist=None, blacklist=None, internal=None, external=None):
     ret = io.StringIO()
     writeline(ret, "@startuml")
     writeline(ret, "!include https://raw.githubusercontent.com/anorm/plantuml-ext/main/datamodelling.puml")
     #writeline(ret, "title Data model overview")
     
-    overrides = datamodel.get("datamodel", {}).get("diagramOverrides", {}).get(id, {})
+    layout = workspace.get("diagrams", {}).get(id, {}).get("layout", {})
     
     # Output all entities
     visibleEntities = []
-    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+    for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
         if whitelist and not id in whitelist:
             continue
         if blacklist and id in blacklist:
@@ -96,7 +102,7 @@ def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=Non
         writeline(ret)
 
     # Output all relations
-    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+    for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
         relations = entity.get("relations", [])
         for relation in relations:
             description = relation.get("description", "?")
@@ -106,10 +112,10 @@ def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=Non
             if not id in visibleEntities or not to in visibleEntities:
                 continue
             direction = ""
-            if f"{to}-{id}" in overrides:
-                direction = "_"+reverse_direction(overrides[f"{to}-{id}"])
-            if f"{id}-{to}" in overrides:
-                direction = "_"+overrides[f"{id}-{to}"]
+            if f"{to}-{id}" in layout:
+                direction = "_"+reverse_direction(layout[f"{to}-{id}"])
+            if f"{id}-{to}" in layout:
+                direction = "_"+layout[f"{id}-{to}"]
 
             writeline(ret, f'Rel{direction}({id}, "{description}", {to}, {propertyString})')
 
@@ -117,9 +123,9 @@ def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=Non
     return ret.getvalue()
 
 
-def find_related_entities(datamodel, target):
+def find_related_entities(workspace, target):
     ret = set()
-    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+    for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
         relations = entity.get("relations", [])
         for relation in relations:
             to = relation["to"]
@@ -129,18 +135,18 @@ def find_related_entities(datamodel, target):
                 ret.add(id)
     return list(ret)
 
-def generate_markdown(datamodel) -> str:
+def generate_markdown(workspace) -> str:
     ret = io.StringIO()
     writeline(ret, "# Data model")
     writeline(ret)
     writeline(ret, "## Overview")
     writeline(ret)
     writeline(ret, "```plantuml")
-    writeline(ret, generate_diagram("overview", datamodel))
+    writeline(ret, generate_diagram("overview", workspace))
     writeline(ret, "```")
     writeline(ret)
 
-    for id, entity in datamodel.get("datamodel", {}).get("entities", {}).items():
+    for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
         name = entity.get("name", id)
         shortDescription = entity.get("shortDescription", "")
         description = entity.get("description", "")
@@ -150,8 +156,8 @@ def generate_markdown(datamodel) -> str:
         writeline(ret)
         writeline(ret, "```plantuml")
         whitelist = [id]
-        whitelist.extend(find_related_entities(datamodel, id))
-        writeline(ret, generate_diagram(id, datamodel, internal=[id], whitelist=whitelist))
+        whitelist.extend(find_related_entities(workspace, id))
+        writeline(ret, generate_diagram(id, workspace, internal=[id], whitelist=whitelist))
         writeline(ret, "```")
         writeline(ret)
         if description:
@@ -162,12 +168,12 @@ def generate_markdown(datamodel) -> str:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("datamodel")
+    parser.add_argument("workspace")
     args = parser.parse_args()
 
-    datamodel = load_model(args.datamodel)
+    workspace = load_workspace(args.workspace)
 
-    markdown = generate_markdown(datamodel)
+    markdown = generate_markdown(workspace)
     print(markdown)
 
 
