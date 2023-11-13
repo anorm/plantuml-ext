@@ -15,7 +15,7 @@ hide <<Entity>> stereotype
 skinparam class<<Entity_Ext>> {
     BackgroundColor white
     HeaderBackgroundColor #eee
-    FontColor #666
+    AttributeFontColor #777
 }
 hide <<Entity_Ext>> stereotype
 
