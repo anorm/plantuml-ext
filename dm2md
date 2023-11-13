@@ -93,10 +93,12 @@ def generate_diagram(id, workspace, whitelist=None, blacklist=None, internal=Non
         visibleEntities.append(id)
         prefix = "Entity" if isInternal else "Entity_Ext"
         name = entity.get("name", id)
+        aka = entity.get("aka", [])
+        akaString = "\\n<size:10>(aka " + " / ".join(aka) + ")" if aka else ""
         shortDescription = entity.get("shortDescription", "")
         examples = ", ".join([f"'{e}'" for e in entity.get("examples", [])])
         properties = entity.get("properties", {})
-        ret.write(f'{prefix}({id}, "{name}", "{shortDescription}", $example="{examples}") {{\n')
+        ret.write(f'{prefix}({id}, "{name}{akaString}", "{shortDescription}", $example="{examples}") {{\n')
         for property,propertyAttr in properties.items():
             writeline(ret, f'  Property("{property}")')
         writeline(ret, "}")
