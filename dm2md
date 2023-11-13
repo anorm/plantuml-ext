@@ -7,6 +7,7 @@ import schema
 
 workspace_schema = schema.Schema({
     "datamodel": {
+        "description": str,
         "entities": {
             str: {
                 "name": str,
@@ -145,6 +146,10 @@ def generate_markdown(workspace) -> str:
     writeline(ret, generate_diagram("overview", workspace))
     writeline(ret, "```")
     writeline(ret)
+    description = workspace.get("datamodel").get("description", "")
+    if description:
+        writeline(ret, description)
+        writeline(ret)
 
     for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
         name = entity.get("name", id)
