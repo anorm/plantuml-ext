@@ -2,11 +2,48 @@
 import argparse
 import io
 import yaml
+import schema
+
+
+datamodel_schema = schema.Schema({
+    "datamodel": {
+        "entities": {
+            str: {
+                "name": str,
+                schema.Optional("aka"): [str],
+                schema.Optional("shortDescription"): str,
+                schema.Optional("description"): str,
+                schema.Optional("properties"): {
+                    str: {
+                        schema.Optional("description"): str,
+                        schema.Optional("type"): str,
+                        schema.Optional("values"): [str]
+                    }
+                },
+                schema.Optional("examples"): [str],
+                schema.Optional("relations"): [{
+                    "to": str,
+                    schema.Optional("description"): str,
+                    schema.Optional("properties"): {
+                        str: {
+                        }
+                    }
+                }]
+            }
+        },
+        "diagramOverrides": object
+    }
+})
 
 
 def load_model(filename: str):
     with open(filename) as f:
-        return yaml.safe_load(f)
+        datamodel = yaml.safe_load(f)
+    try:
+        datamodel_schema.validate(datamodel)
+        return datamodel
+    except schema.SchemaError as e:
+        raise e
 
 
 def writeline(stream, str=""):
@@ -64,6 +101,8 @@ def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=Non
         for relation in relations:
             description = relation.get("description", "?")
             to = relation["to"]
+            properties = relation.get("properties", [])
+            propertyString = "|".join( [p for p in properties] )
             if not id in visibleEntities or not to in visibleEntities:
                 continue
             direction = ""
@@ -72,7 +111,7 @@ def generate_diagram(id, datamodel, whitelist=None, blacklist=None, internal=Non
             if f"{id}-{to}" in overrides:
                 direction = "_"+overrides[f"{id}-{to}"]
 
-            writeline(ret, f'Rel{direction}({id}, "{description}", {to})')
+            writeline(ret, f'Rel{direction}({id}, "{description}", {to}, {propertyString})')
 
     writeline(ret, "@enduml")
     return ret.getvalue()
