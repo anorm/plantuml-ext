@@ -188,6 +188,7 @@ def generate_markdown_details(workspace, diagram, entity_id):
 
 def generate_markdown(workspace) -> str:
     ret = io.StringIO()
+    writeline(ret, "<!-- THIS FILE IS GENERATED -->")
     writeline(ret, "## Concepts")
     writeline(ret)
     diagrams = workspace.get("diagrams", [])
