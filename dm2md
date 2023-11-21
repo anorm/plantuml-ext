@@ -221,7 +221,11 @@ def main():
         markdown = generate_markdown(workspace)
         print(markdown)
     except Exception as e:
-        print('<pre style="background-color:red; color: white>')
+        print("## Concepts")
+        print("")
+        print("### ERROR")
+        print("")
+        print('<pre style="background-color:red; color: white">')
         print(e)
         print('</pre>')
 
