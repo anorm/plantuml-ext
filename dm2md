@@ -33,13 +33,24 @@ workspace_schema = schema.Schema({
             }
         }
     },
-    "diagrams": {
-        str: {
-            "layout": {
+    "diagrams": [{
+        "name": str,
+        "type": schema.Or("overview", "details"),
+        schema.Optional("whitelist"): [str],
+        schema.Optional("blacklist"): [str],
+        schema.Optional("layout"): {
+            str: {
                 str: schema.Or("L", "R", "U", "D")
             }
         }
-    }
+    }]
+    #{
+    #    str: {
+    #        "layout": {
+    #            str: schema.Or("L", "R", "U", "D")
+    #        }
+    #    }
+    #}
 })
 
 
@@ -70,13 +81,11 @@ def reverse_direction(dir):
     return dir
 
 
-def generate_diagram(id, workspace, whitelist=None, blacklist=None, internal=None, external=None):
+def generate_diagram(workspace, whitelist=None, blacklist=None, internal=None, external=None, layout={}):
     ret = io.StringIO()
     writeline(ret, "@startuml")
     writeline(ret, "!include https://raw.githubusercontent.com/anorm/plantuml-ext/main/datamodelling.puml")
     #writeline(ret, "title Data model overview")
-    
-    layout = workspace.get("diagrams", {}).get(id, {}).get("layout", {})
     
     # Output all entities
     visibleEntities = []
@@ -138,38 +147,66 @@ def find_related_entities(workspace, target):
                 ret.add(id)
     return list(ret)
 
-def generate_markdown(workspace) -> str:
+def generate_markdown_overview(workspace, diagram):
+    name = diagram.get("name", "Overview")
+    whitelist = diagram.get("whitelist", None)
+    blacklist = diagram.get("blacklist", None)
+    layout = diagram.get("layout", {}).get("overview", {})
     ret = io.StringIO()
-    writeline(ret, "# Data model")
-    writeline(ret)
-    writeline(ret, "## Overview")
+    writeline(ret, f"### {name}")
     writeline(ret)
     writeline(ret, "```plantuml")
-    writeline(ret, generate_diagram("overview", workspace))
+    writeline(ret, generate_diagram(workspace, whitelist=whitelist, blacklist=blacklist, layout=layout))
     writeline(ret, "```")
     writeline(ret)
-    description = workspace.get("datamodel").get("description", "")
+    return ret.getvalue()
+
+
+def generate_markdown_details(workspace, diagram, entity_id):
+    ret = io.StringIO()
+    entity = workspace.get("datamodel", {}).get("entities", {}).get(entity_id, {})
+    name = diagram.get("name", entity_id)
+    layout = diagram.get("layout", {}).get(entity_id, {})
+    entity_name = entity.get("name", entity_id)
+    shortDescription = entity.get("shortDescription", "")
+    description = entity.get("description", "")
+    examples = ", ".join([f"'{e}'" for e in entity.get("examples", [])])
+    properties = entity.get("properties", {})
+    writeline(ret, f"### {name}: {entity_name}")
+    writeline(ret)
+    writeline(ret, "```plantuml")
+    whitelist = [entity_id]
+    whitelist.extend(find_related_entities(workspace, entity_id))
+    writeline(ret, generate_diagram(workspace, internal=[entity_id], whitelist=whitelist, layout=layout))
+    writeline(ret, "```")
+    writeline(ret)
     if description:
         writeline(ret, description)
-        writeline(ret)
+    return ret.getvalue()
 
-    for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
-        name = entity.get("name", id)
-        shortDescription = entity.get("shortDescription", "")
-        description = entity.get("description", "")
-        examples = ", ".join([f"'{e}'" for e in entity.get("examples", [])])
-        properties = entity.get("properties", {})
-        writeline(ret, f"## {name}")
-        writeline(ret)
-        writeline(ret, "```plantuml")
-        whitelist = [id]
-        whitelist.extend(find_related_entities(workspace, id))
-        writeline(ret, generate_diagram(id, workspace, internal=[id], whitelist=whitelist))
-        writeline(ret, "```")
-        writeline(ret)
-        if description:
-            writeline(ret, description)
-    
+
+
+def generate_markdown(workspace) -> str:
+    ret = io.StringIO()
+    writeline(ret, "## Concepts")
+    writeline(ret)
+    diagrams = workspace.get("diagrams", [])
+    for diagram in diagrams:
+        diagram_type = diagram.get("type", "overview")
+
+        if diagram_type == "overview":
+            writeline(ret, generate_markdown_overview(workspace, diagram))
+        elif diagram_type == "details":
+            entities = workspace.get("datamodel", {}).get("entities", {}).keys()
+            whitelist = diagram.get("whitelist", [])
+            blacklist = diagram.get("blacklist", [])
+            for entity in entities:
+                if whitelist and not entity in whitelist:
+                    continue
+                if blacklist and entity in blacklist:
+                    continue
+                writeline(ret, generate_markdown_details(workspace, diagram, entity))
+
     return ret.getvalue()
 
 
