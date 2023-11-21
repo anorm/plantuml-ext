@@ -86,7 +86,7 @@ def generate_diagram(workspace, whitelist=None, blacklist=None, internal=None, e
     writeline(ret, "@startuml")
     writeline(ret, "!include https://raw.githubusercontent.com/anorm/plantuml-ext/main/datamodelling.puml")
     #writeline(ret, "title Data model overview")
-    
+
     # Output all entities
     visibleEntities = []
     for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
@@ -211,14 +211,19 @@ def generate_markdown(workspace) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("workspace")
-    args = parser.parse_args()
+    try:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("workspace")
+        args = parser.parse_args()
 
-    workspace = load_workspace(args.workspace)
+        workspace = load_workspace(args.workspace)
 
-    markdown = generate_markdown(workspace)
-    print(markdown)
+        markdown = generate_markdown(workspace)
+        print(markdown)
+    except Exception as e:
+        print('<pre style="background-color:red; color: white>')
+        print(e)
+        print('</pre>')
 
 
 if __name__ == "__main__":
