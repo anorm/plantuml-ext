@@ -29,7 +29,8 @@ workspace_schema = schema.Schema({
                         str: {
                         }
                     }
-                }]
+                }],
+                schema.Optional("tags"): [str]
             }
         }
     },
@@ -44,13 +45,6 @@ workspace_schema = schema.Schema({
             }
         }
     }]
-    #{
-    #    str: {
-    #        "layout": {
-    #            str: schema.Or("L", "R", "U", "D")
-    #        }
-    #    }
-    #}
 })
 
 
@@ -90,10 +84,29 @@ def generate_diagram(workspace, whitelist=None, blacklist=None, internal=None, e
     # Output all entities
     visibleEntities = []
     for id, entity in workspace.get("datamodel", {}).get("entities", {}).items():
-        if whitelist and not id in whitelist:
-            continue
-        if blacklist and id in blacklist:
-            continue
+        whitelisted = False
+        if whitelist:
+            if id in whitelist:
+                whitelisted = True
+            else:
+                for tag in entity.get("tags", []):
+                    if f"#{tag}" in whitelist:
+                        whitelisted = True
+            if not whitelisted:
+                continue
+
+        if blacklist:
+            blacklisted = False
+            if id in blacklist:
+                blacklisted = True
+            else:
+                for tag in entity.get("tags", []):
+                    if f"#{tag}" in blacklist:
+                        blacklisted = True
+                        break
+            if blacklisted:
+                continue
+
         isInternal = True
         if internal and not id in internal:
             isInternal = False
