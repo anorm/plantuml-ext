@@ -191,7 +191,7 @@ def generate_markdown_overview(workspace, diagram):
     writeline(ret, "```plantuml")
     internal = expand_tags(workspace, whitelist)
 
-    whitelist = []
+    whitelist = list(internal)
     for entity_id in internal:
         whitelist.extend(find_related_entities(workspace, entity_id))
     writeline(ret, generate_diagram(workspace, internal=internal, whitelist=list(set(whitelist)), blacklist=blacklist, layout=layout))
