@@ -2,6 +2,7 @@
 import argparse
 import io
 import yaml
+import requests
 import schema
 import sys
 import traceback
@@ -78,10 +79,28 @@ def reverse_direction(dir):
     return dir
 
 
+download_cache = {}
+def plantuml_include(stream, url):
+    global download_cache
+    if not url in download_cache:
+        r = requests.get(url, allow_redirects=True)
+        content = io.StringIO()
+        for line in r.content.decode("utf-8").splitlines():
+            if line.startswith("!include http"):
+                _, suburl = line.split()
+                plantuml_include(content, suburl)
+            else:
+                writeline(content, line)
+        download_cache[url] = content.getvalue()
+    writeline(stream)
+    writeline(stream, download_cache[url])
+    writeline(stream)
+
+
 def generate_diagram(workspace, whitelist=None, blacklist=None, internal=None, external=None, layout={}):
     ret = io.StringIO()
     writeline(ret, "@startuml")
-    writeline(ret, "!include https://raw.githubusercontent.com/anorm/plantuml-ext/main/datamodelling.puml")
+    plantuml_include(ret, "https://raw.githubusercontent.com/anorm/plantuml-ext/main/datamodelling.puml")
     #writeline(ret, "title Data model overview")
 
     # Output all entities
